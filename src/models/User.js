@@ -4,11 +4,15 @@ const mongoose = require('mongoose'),
 
 const userSchema = mongoose.Schema(
   {
-    token: {
+    firstname: {
       type: String,
-      // required: true,
+      required: true,
     },
-    name: {
+    lastname: {
+      type: String,
+      required: true,
+    },
+    username: {
       type: String,
       required: true,
     },
@@ -22,7 +26,7 @@ const userSchema = mongoose.Schema(
       type: String,
       required: true,
     },
-    device_token: { type: String },
+    token: { type: String },
   },
   { timestamps: true },
 );
