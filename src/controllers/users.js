@@ -6,9 +6,18 @@ const register = (req, res) => {
   let passwordReg = new RegExp(
     '^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})',
   );
-  if (!req.body.name) {
+  if (!req.body.firstname) {
     res.status(400).send({
-      message: 'Name field cannot be empty',
+      message: 'Firstname field cannot be empty',
+    });
+  }
+  if (!req.body.lastname) {
+    res.status(400).send({
+      message: 'Lastname field cannot be empty',
+    });
+  } else if (!req.body.username) {
+    res.status(400).send({
+      message: 'Username field cannot be empty',
     });
   } else if (!req.body.password) {
     res.status(400).send({
@@ -28,41 +37,55 @@ const register = (req, res) => {
       message: 'Email is invalid',
     });
   }
-  User.find({ email: req.body.email }, (err, doc) => {
-    if (err) {
-      return res.status(500).json(err);
-    }
-    if (doc.length) {
-      return res.status(409).send({
-        status: 409,
-        message: 'Email exists already',
-      });
-    } else {
-      let token = jwt.sign({ email: req.body.email }, process.env.JWT_KEY);
-      const user = new User({
-        token: token,
-        name: req.body.name,
-        password: req.body.password,
-        email: req.body.email,
-      });
-      //save user in db
-      user
-        .save()
-        .then((data) => {
-          res.status(200).send({
-            status: 200,
-            message: 'Account created succesfully',
-            data: data,
+  User.find(
+    // check for two conditions before creating new user data
+    { $or: [{ email: req.body.email }, { username: req.body.username }] },
+    (err, doc) => {
+      if (err) {
+        return res.status(500).json(err);
+      }
+      if (doc.length) {
+        if (doc[0].email === req.body.email) {
+          return res.status(409).send({
+            status: 409,
+            message: 'Email exists already',
           });
-        })
-        .catch((err) => {
-          res.status(500).send({
-            message:
-              err.message || 'Some error occurred while saving the User.',
+        } else if (doc[0].username === req.body.username) {
+          return res.status(409).send({
+            status: 409,
+            message: 'Username already exist',
           });
+        }
+      } else {
+        let token = jwt.sign({ email: req.body.email }, process.env.JWT_KEY);
+        const user = new User({
+          firstname: req.body.firstname,
+          lastname: req.body.lastname,
+          username: req.body.username,
+          password: req.body.password,
+          email: req.body.email,
+          token: token,
         });
-    }
-  });
+        //save user in db
+        user
+          .save()
+          .then((data) => {
+            res.status(200).send({
+              status: 200,
+              token: token,
+              message: 'Account created succesfully',
+              data: data,
+            });
+          })
+          .catch((err) => {
+            res.status(500).send({
+              message:
+                err.message || 'Some error occurred while saving the User.',
+            });
+          });
+      }
+    },
+  );
 };
 
 // Login
