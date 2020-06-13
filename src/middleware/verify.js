@@ -4,13 +4,13 @@ const User = require('../models/User');
 const checkToken = async (req, res, next) => {
   console.log(req.headers);
   // get token from header
-  let token =
+  let rawtoken =
     req.header('Authorization') || req.header('x-access-token') || null;
   //check if there is token
-  if (token) {
+  if (rawtoken) {
     // trim token
-    if (token.startsWith('Bearer ')) {
-      token = token.slice(7, token.length);
+    if (rawtoken.startsWith('Bearer ')) {
+      var token = rawtoken.split(' ')[1];
       jwt.verify(token, process.env.JWT_KEY, (err, decoded) => {
         // if verication return error
         if (err) {
