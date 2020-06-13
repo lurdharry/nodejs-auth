@@ -31,7 +31,7 @@ const userSchema = mongoose.Schema(
   { timestamps: true },
 );
 
-// hash the password before using the model
+// hash the password before using this model
 userSchema.pre('save', function (next) {
   const user = this;
   // do nothing if password is not modified
