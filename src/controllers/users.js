@@ -2,97 +2,135 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const responseHandler = require('../helpers/responsehandler');
+//this handle sanitisation of req body from
+const {
+  body,
+  validationResult,
+  sanitizeBody,
+  check,
+} = require('express-validator');
 
 /**
  * User registration.
  *
- * @param {String}    firstName
- * @param {String}    lastName
+ * @param {String}    firstname
+ * @param {String}    lastname
  * @param {String}    email
  * @param {String}    password
  * @param {String}    username
  *
  * @returns {Object}
  */
-const register = (req, res) => {
-  let emailReg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-  let passwordReg = new RegExp(
-    '^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})',
-  );
-  if (!req.body.firstname) {
-    return responseHandler.validationError(
-      res,
-      'Firstname field cannot be empty',
-    );
-  }
-  if (!req.body.lastname) {
-    return responseHandler.validationError(
-      res,
-      'Lastname field cannot be empty',
-    );
-  } else if (!req.body.username) {
-    return responseHandler.validationError(
-      res,
-      'Username field cannot be empty',
-    );
-  } else if (!req.body.password) {
-    return responseHandler.validationError(
-      res,
-      'Password Field cannot be empty',
-    );
-  } else if (!passwordReg.test(req.body.password)) {
-    return responseHandler.validationError(
-      res,
-      'Password must be equal to or greater than 8 characters, must contain a lowercase letter at least, must contain an uppercase letter, .mustcontain a number, must contain a special character',
-    );
-  } else if (!req.body.email) {
-    return responseHandler.validationError(res, 'Email Field cannot be empty');
-  } else if (!emailReg.test(req.body.email)) {
-    return responseHandler.validationError(res, 'Email is invalid');
-  }
-  User.find(
-    // check for two conditions before creating new user data
-    { $or: [{ email: req.body.email }, { username: req.body.username }] },
-    (err, doc) => {
-      if (err) {
-        return res.status(500).json(err);
-      }
-      if (doc.length) {
-        if (doc[0].email === req.body.email) {
-          return responseHandler.validationError(res, 'Email exists already');
-        } else if (doc[0].username === req.body.username) {
-          return responseHandler.validationError(res, 'Username already exist');
-        }
+const register = [
+  // validate fields
+  body('firstname')
+    .isLength({ min: 1 })
+    .trim()
+    .withMessage('First name must be specified')
+    .isAlphanumeric()
+    .withMessage('Firstname has non-alphanumeric characters'),
+  body('lastname')
+    .isLength({ min: 1 })
+    .trim()
+    .withMessage('lastname must be specified')
+    .isAlphanumeric()
+    .withMessage('lastname has non-alphanumeric characters'),
+  body('email')
+    .isLength({ min: 1 })
+    .trim()
+    .withMessage('Email field must be specified')
+    .isEmail()
+    .withMessage('Email must be a valid email address.'),
+  body('username')
+    .isLength({ min: 1 })
+    .trim()
+    .withMessage('username must be specified')
+    .isAlphanumeric()
+    .withMessage('username has non-alphanumeric characters'),
+  body('password')
+    .exists()
+    .withMessage('Password should not be empty')
+    .isLength({ min: 8 })
+    .withMessage('Password must be minimum of eight character')
+    .matches(
+      RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})'),
+    )
+    .withMessage(
+      'Password must contain a lowercase letter at least, must contain an uppercase letter, must contain a number, must contain a special character',
+    ),
+
+  //santize field
+  sanitizeBody('firstname').escape(),
+  sanitizeBody('lastname').escape(),
+  sanitizeBody('email').escape(),
+  sanitizeBody('password').escape(),
+  sanitizeBody('username').escape(),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return responseHandler.validationErrorWithData(
+          res,
+          'Validation error',
+          errors.array(),
+        );
       } else {
-        let token = jwt.sign({ email: req.body.email }, process.env.JWT_KEY);
-        const user = new User({
-          firstname: req.body.firstname,
-          lastname: req.body.lastname,
-          username: req.body.username,
-          password: req.body.password,
-          email: req.body.email,
-        });
-        //save user in db
-        user
-          .save()
-          .then((data) => {
-            responseHandler.loginSuccess(
-              res,
-              'Account created succesfully',
-              token,
-              data,
-            );
-          })
-          .catch((err) => {
-            responseHandler.errorResponse(
-              res,
-              err.message || 'Some error occurred while saving the User.',
-            );
-          });
+        await User.find(
+          // check for two conditions before creating new user data
+          { $or: [{ email: req.body.email }, { username: req.body.username }] },
+          (err, doc) => {
+            if (err) {
+              return res.status(500).json(err);
+            }
+            if (doc.length) {
+              if (doc[0].email === req.body.email) {
+                return responseHandler.validationError(
+                  res,
+                  'Email exists already',
+                );
+              } else if (doc[0].username === req.body.username) {
+                return responseHandler.validationError(
+                  res,
+                  'Username already exist',
+                );
+              }
+            } else {
+              let token = jwt.sign(
+                { email: req.body.email },
+                process.env.JWT_KEY,
+              );
+              const user = new User({
+                firstname: req.body.firstname,
+                lastname: req.body.lastname,
+                username: req.body.username,
+                password: req.body.password,
+                email: req.body.email,
+              });
+              //save user in db
+              user
+                .save()
+                .then((data) => {
+                  responseHandler.successResponse(
+                    res,
+                    'Account created succesfully',
+                  );
+                })
+                .catch((err) => {
+                  responseHandler.errorResponse(
+                    res,
+                    err.message || 'Some error occurred while saving the User.',
+                  );
+                });
+            }
+          },
+        );
       }
-    },
-  );
-};
+    } catch (err) {
+      //throw error in json response with status 500.
+      return apiResponse.ErrorResponse(res, err);
+    }
+  },
+];
 
 const login = (req, res) => {
   let regg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
@@ -121,8 +159,11 @@ const login = (req, res) => {
               expiresIn: '480h', // expiry time
             },
           );
+          Object.assign(docs, { token: token });
+
+          docs.save();
           // return the JWT token for the future API calls
-          responseHandler.loginSuccess(res, 'Login Successful!', token, docs);
+          responseHandler.loginSuccess(res, 'Login Successful!', docs);
         } else {
           return responseHandler.validationError(
             res,

@@ -1,8 +1,8 @@
-exports.loginSuccess = function (res, msg, token, data) {
+exports.loginSuccess = function (res, msg, data) {
   const resData = {
     status: 'success',
     message: msg,
-    token: token,
+
     data: data,
   };
   return res.status(200).send(resData);
@@ -39,4 +39,13 @@ exports.validationError = function (res, msg) {
     message: msg,
   };
   res.status(400).send(resData);
+};
+
+exports.validationErrorWithData = function (res, msg, data) {
+  var resData = {
+    status: 'error',
+    message: msg,
+    data: data,
+  };
+  return res.status(400).send(resData);
 };
