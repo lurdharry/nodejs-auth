@@ -3,24 +3,8 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const responseHandler = require('../helpers/responsehandler');
 //this handle sanitisation of req body from
-const {
-  body,
-  validationResult,
-  sanitizeBody,
-  check,
-} = require('express-validator');
+const { body, validationResult, check } = require('express-validator');
 
-/**
- * User registration.
- *
- * @param {String}    firstname
- * @param {String}    lastname
- * @param {String}    email
- * @param {String}    password
- * @param {String}    username
- *
- * @returns {Object}
- */
 const register = [
   // validate fields
   body('firstname')
@@ -60,11 +44,11 @@ const register = [
     ),
 
   //santize field
-  sanitizeBody('firstname').escape(),
-  sanitizeBody('lastname').escape(),
-  sanitizeBody('email').escape(),
-  sanitizeBody('password').escape(),
-  sanitizeBody('username').escape(),
+  check('firstname').escape(),
+  check('lastname').escape(),
+  check('email').escape(),
+  check('password').escape(),
+  check('username').escape(),
   async (req, res) => {
     try {
       const errors = validationResult(req);
