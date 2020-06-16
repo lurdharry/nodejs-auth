@@ -194,30 +194,34 @@ const removeUser = (req, res) => {
 };
 
 const updateProfile = (req, res) => {
-  if (
-    req.body.email ||
-    req.body.firstname ||
-    req.body.lastname ||
-    req.body.username
-  ) {
-    return res.status(403).send({
-      message: 'UnAuthorised user',
-    });
-  } else if (!req.body.username) {
+  // if (
+  //   req.body.email ||
+  //   req.body.firstname ||
+  //   req.body.lastname ||
+  //   req.body.username
+  // ) {
+  //   return res.status(403).send({
+  //     message: 'UnAuthorised user',
+  //   });
+  // } else
+  if (!req.body.username) {
     return responseHandler.validationError(
       res,
       'Username field can not be empty',
     );
   } else {
     Object.keys(req.body).forEach(function (key, index) {
+      var newdata = req.body;
       User.findOneAndUpdate(
         { username: req.body.username },
+        // newdata,
         {
           [key]: req.body[key],
         },
         { new: true },
       )
         .then((user) => {
+          console.log(user);
           if (!user) {
             return responseHandler.validationError(
               res,
@@ -225,6 +229,11 @@ const updateProfile = (req, res) => {
             );
           }
           user.save();
+          responseHandler.successResponseWithData(
+            res,
+            'Details updated  Succesfully',
+            user,
+          );
           res.send(user);
         })
         .catch((err) => {

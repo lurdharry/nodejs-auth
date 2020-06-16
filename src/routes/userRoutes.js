@@ -11,7 +11,7 @@ router.post('/users/login', userController.login);
 router.delete('/user/:id', middleware.verifyToken, userController.deleteUser);
 
 router.post(
-  'users/update',
+  '/users/update',
   middleware.verifyToken,
   userController.updateDetails,
 );
