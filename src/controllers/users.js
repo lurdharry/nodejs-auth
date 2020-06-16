@@ -194,16 +194,17 @@ const removeUser = (req, res) => {
 };
 
 const updateProfile = (req, res) => {
-  if (
-    req.body.email ||
-    req.body.firstname ||
-    req.body.lastname ||
-    req.body.username
-  ) {
-    return res.status(403).send({
-      message: 'UnAuthorised user',
-    });
-  } else if (!req.body.username) {
+  // if (
+  //   req.body.email ||
+  //   req.body.firstname ||
+  //   req.body.lastname ||
+  //   req.body.username
+  // ) {
+  //   return res.status(403).send({
+  //     message: 'UnAuthorised user',
+  //   });
+  // } else
+  if (!req.body.username) {
     return responseHandler.validationError(
       res,
       'Username field can not be empty',
