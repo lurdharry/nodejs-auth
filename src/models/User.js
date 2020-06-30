@@ -1,6 +1,8 @@
 const mongoose = require('mongoose'),
   bcrypt = require('bcryptjs'),
-  SALT_WORK_FACTOR = 10;
+  SALT_WORK_FACTOR = 10,
+  Post = require('./comment'),
+  Comment = require('./comment');
 
 const userSchema = mongoose.Schema(
   {
@@ -31,6 +33,11 @@ const userSchema = mongoose.Schema(
   { timestamps: true },
 );
 
+userSchema.pre('remove', function (next) {
+  this.model('Posts').remove({ author: this._id }, next);
+  this.model('Comments').remove({ made_by: this._id }, next);
+});
+
 // hash the password before using this model
 userSchema.pre('save', function (next) {
   const user = this;
@@ -55,5 +62,5 @@ userSchema.methods.comparePassword = function (userpassword, cb) {
   });
 };
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model('Users', userSchema);
 module.exports = User;

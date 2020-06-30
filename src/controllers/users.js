@@ -5,7 +5,7 @@ const responseHandler = require('../helpers/responsehandler');
 //this handle sanitisation of req body from
 const { body, validationResult, check } = require('express-validator');
 
-const register = [
+exports.register = [
   // validate fields
   body('firstname')
     .isLength({ min: 1 })
@@ -79,10 +79,6 @@ const register = [
                 );
               }
             } else {
-              let token = jwt.sign(
-                { email: req.body.email },
-                process.env.JWT_KEY,
-              );
               const user = new User({
                 firstname: req.body.firstname,
                 lastname: req.body.lastname,
@@ -116,7 +112,7 @@ const register = [
   },
 ];
 
-const login = (req, res) => {
+exports.login = (req, res) => {
   let regg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
   if (!req.body.email || !regg.test(req.body.email)) {
     return responseHandler.validationError(res, 'Invalid Email Credentials');
@@ -127,31 +123,28 @@ const login = (req, res) => {
       'Your Password must more more than eight',
     );
   }
-
   //find  users document
   User.findOne({ email: req.body.email }, (err, docs) => {
     if (docs) {
+      let tokenPayload = {
+        userId: docs._id,
+        username: docs.username,
+        email: docs.email,
+      };
       docs.comparePassword(req.body.password, (err, isMatch) => {
         if (isMatch) {
-          let token = jwt.sign(
-            {
-              userId: docs._id.toString(),
-              email: req.body.email,
-            },
-            process.env.JWT_KEY,
-            {
-              expiresIn: '480h', // expiry time
-            },
-          );
-          Object.assign(docs, { token: token });
+          let token = jwt.sign(tokenPayload, process.env.JWT_KEY, {
+            expiresIn: '480h',
+          });
 
+          Object.assign(docs, { token: token });
           docs.save();
-          // return the JWT token for the future API calls
+
           responseHandler.loginSuccess(res, 'Login Successful!', docs);
         } else {
           return responseHandler.validationError(
             res,
-            'Your Paasword is inCorrect',
+            'Your Password is inCorrect',
           );
         }
       });
@@ -161,82 +154,107 @@ const login = (req, res) => {
         'Your Email is not registered',
       );
     }
+  }).catch((err) => {
+    return responseHandler.validationError(res, 'cannot find data in databse');
   });
 };
 
-const removeUser = (req, res) => {
+exports.removeUser = (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return responseHandler.validationError(res, 'Invalid User ID');
   }
-  User.findById(req.params.id, function (err, user) {
-    if (!user) {
-      return responseHandler.errorResponse(res, 'User details not found');
+  User.findByIdAndRemove(req.params.id, function (err, doc) {
+    if (err) {
+      return responseHandler.errorResponse(
+        res,
+        'Unable to delete  User at the moment pls try again',
+      );
     } else {
-      if (user._id.toString() !== req.params.id) {
-        return responseHandler.errorResponse(res, 'User id is not correct');
-      } else {
-        User.findByIdAndRemove(req.params.id, function (err, doc) {
-          if (err) {
-            return responseHandler.errorResponse(
-              res,
-              'Unable to delete  User at the moment pls try again',
-            );
-          } else {
-            return responseHandler.successResponse(
-              res,
-              `${doc.username} acoount deleted successfully`,
-            );
-          }
-        });
-      }
+      return responseHandler.successResponse(
+        res,
+        `Acoount deleted successfully`,
+      );
     }
+  }).catch(() => {
+    responseHandler.errorResponse(res, 'details not found');
   });
 };
 
-const updateProfile = (req, res) => {
-  if (!req.body.username) {
-    return responseHandler.validationError(
-      res,
-      'Username field can not be empty',
-    );
-  } else {
-    Object.keys(req.body).forEach(function (key, index) {
-      User.findOneAndUpdate(
-        { username: req.body.username },
-        {
-          [key]: req.body[key],
-        },
-        { new: true },
-      )
-        .then((user) => {
-          if (!user) {
-            return responseHandler.validationError(
-              res,
-              `User not found with id ' ${req.body.username}`,
-            );
-          }
-          user.save();
-          res.send(user);
-        })
-        .catch((err) => {
-          if (err.kind === 'ObjectId') {
-            return responseHandler.validationError(
-              res,
-              'User not found with id ' + req.body.username,
-            );
-          }
-          return responseHandler.errorResponse(
-            res,
-            'Error updating user with id ' + req.body.username,
-          );
-        });
-    });
-  }
-};
+// exports.updateProfile = (req, res) => {
+//   if (!req.body.username) {
+//     return responseHandler.validationError(
+//       res,
+//       'Username field can not be empty',
+//     );
+//   } else {
+//     User.find(
+//       { $or: [{ email: req.body.email }, { username: req.body.username }] },
+//       (err, doc) => {
+//         if (err) {
+//           res.status(500).send(err);
+//         }
+//         if (doc.length) {
+//           if (doc[0].email === req.body.email) {
+//             return responseHandler.validationError(
+//               res,
+//               'Email already choosen by another user',
+//             );
+//           } else if (doc[0].username === req.body.username) {
+//             return responseHandler.validationError(
+//               res,
+//               'Username already choosen by another user',
+//             );
+//           } else {
+//             Object.keys(req.body).forEach(function (key, index) {
+//               User.findOneAndUpdate(
+//                 { uuid: req.user.uuid },
+//                 {
+//                   [key]: req.body[key],
+//                 },
+//                 { new: true },
+//               )
+//                 .then((user) => {
+//                   console.log(user);
+//                   if (!user) {
+//                     return responseHandler.validationError(
+//                       res,
+//                       `User not found with id ' ${req.body.username}`,
+//                     );
+//                   }
+//                   user.save();
+//                   res.send(user);
+//                 })
+//                 .catch((err) => {
+//                   if (err.kind === 'ObjectId') {
+//                     return responseHandler.validationError(
+//                       res,
+//                       'User not found with id ' + req.body.username,
+//                     );
+//                   }
+//                   return responseHandler.errorResponse(
+//                     res,
+//                     'Error updating user with id ' + req.body.username,
+//                   );
+//                 });
+//             });
+//           }
+//         }
+//       },
+//     );
+//   }
+// };
 
-module.exports = {
-  register: register,
-  login: login,
-  updateDetails: updateProfile,
-  deleteUser: removeUser,
-};
+// if (
+//   doc[0].email === req.body.email &&
+//   doc[0].username === req.body.username
+// ) {
+//   const err = {
+//     email: 'Email already choosen by another user',
+//     username: 'Username already choosen by another user',
+//   };
+//   return responseHandler.validationErrorWithData(
+//     res,
+//     'Validation error',
+//     err,
+//   );
+// } else

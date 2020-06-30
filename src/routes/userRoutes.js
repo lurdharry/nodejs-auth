@@ -8,12 +8,6 @@ router.post('/users/register', userController.register);
 
 router.post('/users/login', userController.login);
 
-router.delete('/user/:id', middleware.verifyToken, userController.deleteUser);
-
-router.post(
-  '/users/update',
-  middleware.verifyToken,
-  userController.updateDetails,
-);
+router.delete('/user/:id', middleware.verifyToken, userController.removeUser);
 
 module.exports = router;
