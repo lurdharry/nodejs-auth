@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const UserRouter = require('./routes/userRoutes');
+const PostRouter = require('./routes/postRoutes');
+const CommentRouter = require('./routes/comment');
 
 // env conection data from .env file
 const Mongoconnect = process.env.DB_CONNECT;
@@ -10,6 +12,7 @@ const extra = {
   useNewUrlParser: true,
   useCreateIndex: true,
   useUnifiedTopology: true,
+  useFindAndModify: false,
 };
 
 // mongo cluster initialization
@@ -27,8 +30,10 @@ const app = express();
 // to convert response to json format
 app.use(express.json());
 
-//links  user routes  to server
+//links   routes  to server
 app.use(UserRouter);
+app.use(PostRouter);
+app.use(CommentRouter);
 
 // to check if the server is  running
 app.listen(port, () => {
