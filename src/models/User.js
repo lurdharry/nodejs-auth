@@ -32,10 +32,14 @@ const userSchema = mongoose.Schema(
   },
   { timestamps: true },
 );
-
+// Person.pre('deleteMany', function(next) {
+//   var person = this;
+//   person.model('Assignment').deleteOne({ person: person._id }, next);
+//   });
 userSchema.pre('remove', function (next) {
-  this.model('Posts').remove({ author: this._id }, next);
-  this.model('Comments').remove({ made_by: this._id }, next);
+  Post.remove({ author: this._id }).exec();
+  Comment.deleteOne({ made_by: this._id }, next);
+  next();
 });
 
 // hash the password before using this model

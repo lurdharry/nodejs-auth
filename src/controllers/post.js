@@ -37,7 +37,7 @@ exports.deletePost = (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return responsehandler.validationError(res, 'Invalid ID');
   }
-  Post.findByIdAndRemove(id, function (err, doc) {
+  Post.findByIdAndDelete(id, function (err, doc) {
     if (err) {
       return responsehandler.errorResponse(res, 'Unable to delete Post');
     } else {
